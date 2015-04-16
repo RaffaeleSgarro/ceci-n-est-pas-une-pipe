@@ -15,11 +15,11 @@ on StackOverflow
 Development notes
 =================
 
-The blue component in transport blob (the PNG) contains:
+The transport blob (the PNG) contains:
 
 - the length (number of bytes as a Java `int`) of the secret message. Read with `ObjectInputStream.readInt()`
 - headers in a `Map<String, Serializable>`. Read with `ObjectInputStream.readObject()`
-- the encrypted message
+- the encrypted message (each byte is the blue component in the transport pixel)
 - final padding
 
 
