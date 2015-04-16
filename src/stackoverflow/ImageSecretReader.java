@@ -24,18 +24,9 @@ public class ImageSecretReader {
 
     @SuppressWarnings("unchecked")
     public void decrypt() throws Exception {
-        BufferedImage bufferedImage = ImageIO.read(new ByteArrayInputStream(envelope));
-        int width = bufferedImage.getWidth();
-        int height = bufferedImage.getHeight();
-        byte[] rgb = new byte[width * height];
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int indexInMessage = y * width + x;
-                rgb[indexInMessage] = (byte) (bufferedImage.getRGB(x, y));
-            }
-        }
+        byte[] buffer = decodeImage();
+        ByteArrayInputStream in = new ByteArrayInputStream(buffer);
 
-        ByteArrayInputStream in = new ByteArrayInputStream(rgb);
         ObjectInputStream objectInputStream = new ObjectInputStream(in);
         int length = objectInputStream.readInt();
         headers = (Map<String, Serializable>) objectInputStream.readObject();
@@ -45,6 +36,22 @@ public class ImageSecretReader {
 
         image = new byte[length];
         System.arraycopy(paddedContent, 0, image, 0, length);
+    }
+
+    public byte[] decodeImage() throws Exception {
+        BufferedImage bufferedImage = ImageIO.read(new ByteArrayInputStream(envelope));
+        int width = bufferedImage.getWidth();
+        int height = bufferedImage.getHeight();
+        byte[] rgb = new byte[width * height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int indexInMessage = y * width + x;
+                // byte is stored in the blue component
+                rgb[indexInMessage] = (byte) (bufferedImage.getRGB(x, y));
+            }
+        }
+
+        return rgb;
     }
 
     public byte[] getImageBytes() {

@@ -4,6 +4,7 @@ import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.awt.image.RenderedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
@@ -16,6 +17,11 @@ public class ImageSecretWriter {
     private final Map<String, Serializable> headers;
     private final byte[] secret;
 
+    /**
+     * @param cipher must be initialized
+     * @param headers must be non null
+     * @param secret the message
+     */
     ImageSecretWriter(Cipher cipher, Map<String, Serializable> headers, byte[] secret) {
         this.cipher = cipher;
         this.headers = headers;
@@ -23,16 +29,28 @@ public class ImageSecretWriter {
     }
 
     public void encryptAndWriteAsPNGTo(OutputStream out) throws Exception {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        ObjectOutputStream headerOut = new ObjectOutputStream(byteArrayOutputStream);
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        ObjectOutputStream headerOut = new ObjectOutputStream(buffer);
         headerOut.writeInt(secret.length);
         headerOut.writeObject(headers);
 
-        CipherOutputStream cipherOutputStream = new CipherOutputStream(byteArrayOutputStream, cipher);
+        CipherOutputStream cipherOutputStream = new CipherOutputStream(buffer, cipher);
         cipherOutputStream.write(secret);
         cipherOutputStream.flush();
 
-        byte[] messageBytes = byteArrayOutputStream.toByteArray();
+        RenderedImage image = encodeMessage(buffer.toByteArray());
+
+        ImageIO.write(image, "PNG", out);
+    }
+
+    /**
+     * Store the bytes in messageBytes in an image in the RGB color space using the
+     * blue channel
+     *
+     * @param messageBytes
+     * @return an image in RGB co
+     */
+    public RenderedImage encodeMessage(byte[] messageBytes) {
 
         int side = (int) Math.ceil(Math.sqrt(messageBytes.length));
 
@@ -43,8 +61,10 @@ public class ImageSecretWriter {
             for (int x = 0; x < side; x++) {
                 int pixel;
                 if (counter < messageBytes.length) {
+                    // store byte in blue channel - bytes can be negative
                     pixel = messageBytes[counter] & 0x0000FF;
                 } else {
+                    // padding. zero. easy
                     pixel = 0x000000;
                 }
                 image.setRGB(x, y, pixel);
@@ -52,6 +72,6 @@ public class ImageSecretWriter {
             }
         }
 
-        ImageIO.write(image, "PNG", out);
+        return image;
     }
 }
