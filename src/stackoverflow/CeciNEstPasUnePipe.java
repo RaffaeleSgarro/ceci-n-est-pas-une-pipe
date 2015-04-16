@@ -3,7 +3,6 @@ package stackoverflow;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 import java.io.*;
 import java.security.SecureRandom;
 import java.util.LinkedHashMap;
@@ -20,14 +19,13 @@ public class CeciNEstPasUnePipe {
         KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
         keyGenerator.init(new SecureRandom());
         SecretKey key = keyGenerator.generateKey();
-        Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
-        IvParameterSpec initialValue = new IvParameterSpec(new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+        Cipher cipher = Cipher.getInstance("AES");
 
         try (InputStream in = CeciNEstPasUnePipe.class.getResourceAsStream("ceci-n-est-pas-une-pipe.jpg")) {
             byte[] secret = IOUtils.read(in);
             LinkedHashMap<String, Serializable> headers = new LinkedHashMap<>();
             headers.put("Filename", "hamster.jpeg");
-            cipher.init(Cipher.ENCRYPT_MODE, key, initialValue);
+            cipher.init(Cipher.ENCRYPT_MODE, key);
             ImageSecretWriter writer = new ImageSecretWriter(cipher, headers, secret);
             writer.encryptAndWriteAsPNGTo(new FileOutputStream(encryptedPNG));
             System.out.println("Encrypted secret and written to " + encryptedPNG.getAbsolutePath());
@@ -35,7 +33,7 @@ public class CeciNEstPasUnePipe {
 
         try (InputStream in = new FileInputStream(encryptedPNG);
              OutputStream out = new FileOutputStream(decryptDestination)) {
-            cipher.init(Cipher.DECRYPT_MODE, key, initialValue);
+            cipher.init(Cipher.DECRYPT_MODE, key);
             ImageSecretReader reader = new ImageSecretReader(cipher, IOUtils.read(in));
             reader.decrypt();
             out.write(reader.getImageBytes());
